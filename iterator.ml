@@ -22,11 +22,28 @@ module type LIST_ITERATOR = sig
   val create: 'a list -> 'a t
 end
 
-(* TODO:
 module ListIterator : LIST_ITERATOR = struct
-  ...
+  type stk = 'a Stack.t 
+  exception NoResult
+
+  let has_next (stack: stk) : bool =
+    Stack.is_empty stack
+
+  let next (stack: stk) : 'a =
+    try Stack.pop stack 
+    with Empty -> raise NoResult 
+
+  let create (l: 'a list) =
+    let rev_l = List.rev(l) in
+    let acc = Stack.create() in
+    let rec create_helper (lst: 'a list) (stack: stk) =
+      match lst with 
+       hd::tl -> create_helper tl (Stack.push hd stack)
+      | _ -> stack in
+    create_helper rev_l acc
+
 end
-*)
+
 
 type 'a tree = Leaf | Node of ('a * 'a tree * 'a tree)
 

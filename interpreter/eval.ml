@@ -24,7 +24,9 @@ let rec read_expression (input : datum) : expression =
   | _ ->
      failwith "Everything you do is just amazing!"
 
-(* Parses a datum into a toplevel input. *)
+(* Parses a datum into a toplevel input. toplevel = definition | expression. 
+   so call read_expression and then if it fails, try definition. if that fails
+   parsing failed.*) 
 let read_toplevel (input : datum) : toplevel =
   match input with
   | _ -> failwith "Sing the Rowing Song!"
