@@ -25,8 +25,11 @@ let rec read_expression (input : datum) : expression =
   | Cons (first, second) ->
      (match first with
        | Atom (Identifier id) when (id = (Identifier.identifier_of_string "quote")) -> ExprQuote second
-       (* | Atom (Identifier id) -> when id = "if" -> failwith "if"
-       | Atom (Identifier id) -> when id = "lambda" -> failwith "lambda"
+       | Atom (Identifier id) when (id = (Identifier.identifier_of_string "if")) ->
+         (match second with 
+          | Cons (e1, (Cons (e2, Cons (e3, Nil)))) -> ExprIf (read_expression e1, read_expression e2, read_expression e3)
+          | _ -> failwith "if statement wants 3 expressions") 
+       (*| Atom (Identifier id) -> when id = "lambda" -> failwith "lambda"
        | Atom (Identifier id) -> when id = "set!" -> failwith "set!"
        | Atom (Identifier id) -> when id = "let" -> failwith "let"
        | Atom (Identifier id) -> when id = "let*" -> failwith "let*"
@@ -48,7 +51,7 @@ let read_toplevel (input : datum) : toplevel =
 (* This function returns an initial environment with any built-in
    bound variables. *)
 let rec initial_environment () : environment =
-  (*let func_car (single_cell: datum) : datum = 
+  let func_car (single_cell: datum) : datum = 
     match single_cell with 
     | Cons (el1, el2) -> el1
     | _ -> failwith "not a single con_cell" in
@@ -60,7 +63,7 @@ let rec initial_environment () : environment =
     match (func_car single_cell) with
     | Nil -> Atom (Integer acc)
     | Atom (Integer integer) -> func_add (func_cdr single_cell) (acc + integer)
-    | _ -> failwith "must add integers" in*)
+    | _ -> failwith "must add integers" in
   (*
   let car = Identifier.variable_of_identifier(Identifier.identifier_of_string("car")) in
   let cdr = Identifier.variable_of_identifier(Identifier.identifier_of_string("cdr")) in
@@ -73,6 +76,8 @@ let rec initial_environment () : environment =
   let course_ref = ref (ValDatum (Atom (Integer 3110))) in
   Environment.add_binding init_env 
   (Identifier.variable_of_identifier(Identifier.identifier_of_string("course")), course_ref)
+  let car_ref = ref (ValProcedure ProcBuiltin )
+  Environment.add_binding init_env (car, )
 
 
   (*use addbinding.
@@ -88,22 +93,29 @@ let rec initial_environment () : environment =
    statement. *)
 and eval (expression : expression) (env : environment) : value =
   let variable_eval (var_expr: variable) (env: environment) : value =
-  !(Environment.get_binding env var_expr) in
+    !(Environment.get_binding env var_expr) in
 
   let self_eval_eval (se_expr: self_evaluating) : value =
-  match se_expr with
-  | SEInteger integer -> ValDatum (Atom (Integer integer))
-  | SEBoolean boolean -> ValDatum (Atom (Boolean boolean)) in
+    match se_expr with
+    | SEInteger integer -> ValDatum (Atom (Integer integer))
+    | SEBoolean boolean -> ValDatum (Atom (Boolean boolean)) in
+
+  let quote_eval (quote_expr : datum) : value =
+    match quote_expr with
+    | Cons (first, second) -> ValDatum first
+    | _ -> failwith "quote_eval shouldn't be coming here..." in
+
+  let if_eval (e1: expression) (e2: expression) (e3: expression) (env: environment) : value =
+    if (e1 = (ExprSelfEvaluating (SEBoolean false))) then (eval e3 env) else (eval e2 env) in
 
   match expression with
   | ExprSelfEvaluating se -> self_eval_eval se
   | ExprVariable variable -> variable_eval variable env
-  | ExprQuote datum       -> ValDatum datum
+  | ExprQuote datum       -> quote_eval datum
   | ExprLambda (_, _)
   | ExprProcCall _        ->
      failwith "Sing along with me as I row my boat!'"
-  | ExprIf (_, _, _) ->
-     failwith "But I love you!"
+  | ExprIf (e1, e2, e3) -> if_eval e1 e2 e3 env
   | ExprAssignment (_, _) ->
      failwith "Say something funny, Rower!"
   | ExprLet (_, _)
