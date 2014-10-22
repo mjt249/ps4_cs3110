@@ -60,17 +60,10 @@ let read_toplevel (input : datum) : toplevel =
 (* This function returns an initial environment with any built-in
    bound variables. *)
 let rec initial_environment () : environment =
-<<<<<<< HEAD
 
-  let func_car (single_cell: datum) : datum = 
-    match single_cell with 
-    | Cons (el1, el2) -> el1
-    | _ -> failwith "not a single con_cell" in
-  let func_cdr (single_cell: datum) : datum =
-=======
   (*single cell is a value list with exactly one cons cell*)
   let func_car (single_cell: value list) (env: environment): value = 
->>>>>>> 0890a09014e514c53a6ff154ef71bc3e5615a7dc
+
     match single_cell with
     | (ValDatum (Cons (d1, d2)))::[] -> ValDatum d1
     | _ -> failwith "Invalid arguments to car." in
