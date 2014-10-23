@@ -29,8 +29,8 @@ let rec read_expression (input : datum) : expression =
     | Nil -> List.rev(acc)
     | _ -> failwith "not a cons or not a var (to_var_list)" in 
   match input with
-  | Nil -> failwith "nil"
   | Atom (Identifier id) when Identifier.is_valid_variable id ->
+
      ExprVariable (Identifier.variable_of_identifier id)
   | Atom (Identifier id) -> failwith "is a keyword"
   | Atom (Boolean bl) -> ExprSelfEvaluating (SEBoolean bl)
@@ -56,20 +56,27 @@ let rec read_expression (input : datum) : expression =
   | _ -> failwith "read failed"
 
 
+
 (* Parses a datum into a toplevel input. toplevel = definition | expression. 
    so call read_expression and then if it fails, try definition. if that fails
    parsing failed.*) 
 let read_toplevel (input : datum) : toplevel =
   match input with
+<<<<<<< HEAD
+  | _ -> failwith "Sing the Rowing Song!"
+=======
   | Cons (Atom (Identifier id), Cons( Atom (Identifier var), Cons( expr, Nil ))) when (id = (Identifier.identifier_of_string("define")))-> 
       ToplevelDefinition ((Identifier.variable_of_identifier var), read_expression expr)
   | _ -> ToplevelExpression (read_expression input )
+>>>>>>> e4d58ed79cf347591ca1ef247f63c63fbb4bea9c
 
 (* This function returns an initial environment with any built-in
    bound variables. *)
 let rec initial_environment () : environment =
+
   (*single cell is a value list with exactly one cons cell*)
   let func_car (single_cell: value list) (env: environment): value = 
+
     match single_cell with
     | (ValDatum (Cons (d1, d2)))::[] -> ValDatum d1
     | _ -> failwith "Invalid arguments to car." in
@@ -209,6 +216,7 @@ and eval (expression : expression) (env : environment) : value =
     proc_lambda_eval_helper expressions (add_temp_bindings env variables arguments) (ValDatum Nil) in
 
   match expression with
+
   | ExprSelfEvaluating se -> self_eval_eval se
   | ExprVariable variable -> variable_eval variable env
   | ExprQuote datum       -> quote_eval datum
