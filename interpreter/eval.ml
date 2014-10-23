@@ -16,7 +16,7 @@ and environment = value ref Environment.environment
 
 (* Parses a datum into an expression. *)
 let rec read_expression (input : datum) : expression =
-   let rec cons_to_expr_list (cons: datum) (acc: expression list) : expression list =
+  let rec cons_to_expr_list (cons: datum) (acc: expression list) : expression list =
     match cons with
     | Cons ( first, second ) -> cons_to_expr_list second ((read_expression first)::acc) 
     | Nil -> List.rev(acc)
@@ -28,6 +28,16 @@ let rec read_expression (input : datum) : expression =
         cons_to_var_list second ((Identifier.variable_of_identifier id)::acc) 
     | Nil -> List.rev(acc)
     | _ -> failwith "not a cons or not a var (to_var_list)" in 
+
+  let rec cons_to_let_binding_list (cons: datum) (acc: let_binding list): let_binding list =
+    match cons with
+    | Cons ( Cons( Atom (Identifier id), Cons(x,y)), rest) -> 
+           cons_to_let_binding_list rest (((Identifier.variable_of_identifier id), (read_expression x)):: acc)
+    | Cons(Atom (Identifier id), Cons (x,y)) -> failwith "wat"
+           (* cons_to_let_binding_list y (((Identifier.variable_of_identifier id), (read_expression x)):: acc) *)
+    | Nil -> List.rev(acc)
+    | _ -> failwith "not a valid binding list" in
+
   match input with
   | Atom (Identifier id) when Identifier.is_valid_variable id ->
 
@@ -49,6 +59,10 @@ let rec read_expression (input : datum) : expression =
                       (cons_to_expr_list arguments []))
   | Cons ( Atom (Identifier id), Cons ( Atom ( Identifier var), Cons (expr, Nil)) ) when (id = Identifier.identifier_of_string("set!")) ->
       ExprAssignment ( (Identifier.variable_of_identifier var), read_expression expr)
+  | Cons ( Atom (Identifier id), Cons (let_binds, expressions) ) when (id = Identifier.identifier_of_string("let*")) ->
+      ExprLetStar ((cons_to_let_binding_list let_binds []), (cons_to_expr_list expressions []))
+  | Cons ( Atom (Identifier id), Cons (let_binds, expressions) ) when (id = Identifier.identifier_of_string("let")) ->
+     ExprLet ((cons_to_let_binding_list let_binds []), (cons_to_expr_list expressions []))
 (*
        | Atom (Identifier id) -> when id = "let" -> failwith "let"
        | Atom (Identifier id) -> when id = "let*" -> failwith "let*"
@@ -62,13 +76,11 @@ let rec read_expression (input : datum) : expression =
    parsing failed.*) 
 let read_toplevel (input : datum) : toplevel =
   match input with
-<<<<<<< HEAD
-  | _ -> failwith "Sing the Rowing Song!"
-=======
+
   | Cons (Atom (Identifier id), Cons( Atom (Identifier var), Cons( expr, Nil ))) when (id = (Identifier.identifier_of_string("define")))-> 
       ToplevelDefinition ((Identifier.variable_of_identifier var), read_expression expr)
   | _ -> ToplevelExpression (read_expression input )
->>>>>>> e4d58ed79cf347591ca1ef247f63c63fbb4bea9c
+
 
 (* This function returns an initial environment with any built-in
    bound variables. *)
@@ -105,6 +117,7 @@ let rec initial_environment () : environment =
     match two_vals with
     | e1::e2::[] -> ValDatum (Atom (Boolean (e1 = e2)))
     | _ -> failwith "Invalid arguments to eqaul?." in
+
 
   let func_eval (one_val: value list) (env: environment) : value =
     match one_val with
@@ -205,15 +218,51 @@ and eval (expression : expression) (env : environment) : value =
       ValDatum Nil
     else 
       failwith "variable must already be bound" in
-    
-  let proc_lambda_eval (variables: variable list) (env: environment) (expressions: expression list)
-   (arguments: expression list) : value =
-    let rec proc_lambda_eval_helper (expr_list: expression list) (temp_env: environment) 
+
+
+  let rec proc_lambda_eval_helper (expr_list: expression list) (temp_env: environment) 
      (acc:value): value=
       match expr_list with
       | hd::tl -> proc_lambda_eval_helper tl temp_env (eval hd temp_env)
-      | _ -> acc in
+      | _ -> acc in 
+
+  let proc_lambda_eval (variables: variable list) (env: environment) (expressions: expression list)
+   (arguments: expression list) : value =
     proc_lambda_eval_helper expressions (add_temp_bindings env variables arguments) (ValDatum Nil) in
+
+
+  let rec separate_bindings (bind_l: let_binding list) (acc: variable list * expression list) =
+         match bind_l with
+         | (var,exp)::tl -> separate_bindings tl (var::(fst acc), exp::(snd acc))
+         | [] -> acc
+        
+       in
+
+  let let_star (bind_lst: let_binding list) (expr: expression list) : value =
+     
+    let not_reversed_sep = (separate_bindings bind_lst ([],[])) in
+    let sep_binds = ((List.rev(fst not_reversed_sep)), (List.rev(snd not_reversed_sep))) in
+    let temp_env = add_temp_bindings env (fst sep_binds) (snd sep_binds) in
+
+     proc_lambda_eval_helper expr (Environment.combine_environments env temp_env) (ValDatum Nil)
+   in
+  
+  
+
+  let func_let (bind_lst: let_binding list) ( expr: expression list) : value =
+    let rec var_lst_maker (vlst: variable list * expression list) (new_vlists: variable list * expression list ) =
+         match vlst with
+          |(hd::tl,hd2::tl2) -> if (List.exists (fun x -> (hd = x)) (tl)) then failwith "multiple same variables"
+             else var_lst_maker (tl,tl2) ((hd::(fst new_vlists)), (hd2::(snd new_vlists)))
+          | ([],[]) -> new_vlists 
+          | _ -> failwith "error"
+        in 
+    let not_reversed_sep = (separate_bindings bind_lst ([],[])) in
+    let checked_for_dups = var_lst_maker not_reversed_sep ([],[]) in
+    
+    proc_lambda_eval (fst checked_for_dups) env expr (snd checked_for_dups)
+  in
+
 
   match expression with
 
@@ -229,8 +278,8 @@ and eval (expression : expression) (env : environment) : value =
        | _ -> failwith "not a valid proc call")
   | ExprIf (e1, e2, e3) -> if_eval e1 e2 e3 env
   | ExprAssignment (var, expr) -> assign_eval var expr
-  | ExprLet (_, _)
-  | ExprLetStar (_, _)
+  | ExprLet (let_bindlst, exprs) -> func_let let_bindlst exprs
+  | ExprLetStar (let_bindlst, exprs) -> let_star let_bindlst exprs
   | ExprLetRec (_, _)     ->
      failwith "Ahahaha!  That is classic Rower."
   | _ -> failwith "no match"
