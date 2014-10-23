@@ -23,24 +23,25 @@ module type LIST_ITERATOR = sig
 end
 
 module ListIterator : LIST_ITERATOR = struct
-  type stk = 'a Stack.t 
+
+  
+  type 'a t = 'a Stack.t
   exception NoResult
 
-  let has_next (stack: stk) : bool =
+  let has_next (stack: 'a t) : bool =
     Stack.is_empty stack
 
-  let next (stack: stk) : 'a =
-    try Stack.pop stack 
-    with Empty -> raise NoResult 
+  let next (stack: 'a t) : 'a =
+    try Stack.pop stack with Stack.Empty -> raise NoResult 
 
-  let create (l: 'a list) =
+  let create (l: 'a list) : 'a t =
     let rev_l = List.rev(l) in
-    let acc = Stack.create() in
-    let rec create_helper (lst: 'a list) (stack: stk) =
+    let acc : 'a t = Stack.create() in
+    let rec create_helper (lst: 'a list)  =
       match lst with 
-       hd::tl -> create_helper tl (Stack.push hd stack)
-      | _ -> stack in
-    create_helper rev_l acc
+       hd::tl -> (Stack.push hd acc); create_helper tl
+      | _ -> acc in
+    create_helper rev_l
 
 end
 
@@ -56,11 +57,27 @@ module type INORDER_TREE_ITERATOR = sig
   val create: 'a tree -> 'a t
 end
 
-(* TODO:
-module InorderTreeIterator : INORDER_TREE_ITERATOR = struct
-  ...
+
+ module InorderTreeIterator : INORDER_TREE_ITERATOR = struct
+    type 'a t = 'a Stack.t
+  exception NoResult
+
+  let has_next (stack: 'a t) : bool =
+    Stack.is_empty stack
+
+  let next (stack: 'a t) : 'a =
+    try Stack.pop stack with Stack.Empty -> raise NoResult 
+
+  let create (l: 'a list) : 'a t =
+    let rev_l = List.rev(l) in
+    let acc : 'a t = Stack.create() in
+    let rec create_helper (lst: 'a list)  =
+      match lst with 
+       hd::tl -> (Stack.push hd acc); create_helper tl
+      | _ -> acc in
+    create_helper rev_l
 end
-*)
+ 
 
 module type TAKE_ITERATOR = functor (I: ITERATOR) -> sig
   include ITERATOR
@@ -72,12 +89,19 @@ module type TAKE_ITERATOR = functor (I: ITERATOR) -> sig
   val create: int -> 'a I.t -> 'a t
 end
 
-(* TODO:
+(* 
 module TakeIterator : TAKE_ITERATOR = functor (I : ITERATOR) -> struct
-  ...
-end
-*)
+  type stk = 'a Stack.t
+  let has_next = I.has_next
+  
+  let create (n: int) (iter : 'a I.t) : 'a t =
+     let rec resizer (current: int) : 'a t
 
+
+  let next = I.create 
+end
+
+ *)
 module IteratorUtilsFn (I : ITERATOR) = struct
   open I
 
