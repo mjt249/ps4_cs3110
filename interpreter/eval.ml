@@ -16,6 +16,7 @@ and environment = value ref Environment.environment
 
 (* Parses a datum into an expression. *)
 let rec read_expression (input : datum) : expression =
+
    let rec cons_to_expr_list (cons: datum) (acc: expression list) : expression list =
     match cons with
     | Cons ( first, second ) -> cons_to_expr_list second ((read_expression first)::acc) 
@@ -28,6 +29,7 @@ let rec read_expression (input : datum) : expression =
         cons_to_var_list second ((Identifier.variable_of_identifier id)::acc) 
     | Nil -> List.rev(acc)
     | _ -> failwith "not a cons or not a var (to_var_list)" in 
+
   match input with
   | Nil -> failwith "nil"
   | Atom (Identifier id) when Identifier.is_valid_variable id ->
@@ -133,9 +135,6 @@ let rec initial_environment () : environment =
   let eval_ref = ref (ValProcedure (ProcBuiltin (func_eval))) in
   let eval_var = Identifier.variable_of_identifier(Identifier.identifier_of_string("eval")) in
   Environment.add_binding eq_env (eval_var, eval_ref) 
-
-
-
 
 
 
