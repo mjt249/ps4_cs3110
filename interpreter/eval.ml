@@ -28,10 +28,6 @@ let rec read_expression (input : datum) : expression =
         cons_to_var_list second ((Identifier.variable_of_identifier id)::acc) 
     | Nil -> List.rev(acc)
     | _ -> failwith "not a cons or not a var (to_var_list)" in 
-
-    
-(* ((lambda (x) 1 2  4 5) '())
- *)
   match input with
   | Nil -> failwith "nil"
   | Atom (Identifier id) when Identifier.is_valid_variable id ->
@@ -54,15 +50,11 @@ let rec read_expression (input : datum) : expression =
   | Cons ( Atom (Identifier id), Cons ( Atom ( Identifier var), Cons (expr, Nil)) ) when (id = Identifier.identifier_of_string("set!")) ->
       ExprAssignment ( (Identifier.variable_of_identifier var), read_expression expr)
 (*
-       | Atom (Identifier id) -> when id = "set!" -> failwith "set!"
        | Atom (Identifier id) -> when id = "let" -> failwith "let"
        | Atom (Identifier id) -> when id = "let*" -> failwith "let*"
-       | Atom (Identifier id) -> when id = "letrec" -> failwith "letrec"
-       | Atom (Identifier id) when Identifier.is_valid_variable id ->
-          ExprVariable id *)
+       | Atom (Identifier id) -> when id = "letrec" -> failwith "letrec"*)
   | _ -> failwith "read failed"
-     (* Above match case didn't succeed, so id is not a valid variable. *)
- (* | _ -> failwith "Everything you do is just amazing!"*)
+
 
 (* Parses a datum into a toplevel input. toplevel = definition | expression. 
    so call read_expression and then if it fails, try definition. if that fails
@@ -225,6 +217,7 @@ and eval (expression : expression) (env : environment) : value =
   | ExprProcCall (ExprVariable id, e_list) -> 
       (match (!(Environment.get_binding env id)) with
        | ValProcedure (ProcBuiltin builtin) -> builtin (expr_list_to_val_list e_list []) env
+       | ValProcedure (ProcLambda (var_list, temp_env, expr_list)) -> proc_lambda_eval var_list temp_env expr_list e_list
        | _ -> failwith "not a valid proc call")
   | ExprIf (e1, e2, e3) -> if_eval e1 e2 e3 env
   | ExprAssignment (var, expr) -> assign_eval var expr
