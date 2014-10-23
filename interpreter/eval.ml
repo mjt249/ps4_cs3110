@@ -20,8 +20,14 @@ let rec read_expression (input : datum) : expression =
     match cons with
     | Cons ( first, second ) -> cons_to_expr_list second ((read_expression first)::acc) 
     | Nil -> List.rev(acc)
-    | _ -> failwith "not a cons" in 
+    | _ -> failwith "not a cons (to_expr_list)" in 
 
+  let rec cons_to_var_list (cons: datum) (acc: variable list): variable list =
+    match cons with
+    | Cons ( Atom (Identifier id) , second ) when Identifier.is_valid_variable(id) -> 
+        cons_to_var_list second ((Identifier.variable_of_identifier id)::acc) 
+    | Nil -> List.rev(acc)
+    | _ -> failwith "not a cons or not a var (to_var_list)" in 
   match input with
   | Atom (Identifier id) when Identifier.is_valid_variable id ->
 
@@ -31,23 +37,24 @@ let rec read_expression (input : datum) : expression =
   | Atom (Integer intgr) -> ExprSelfEvaluating (SEInteger intgr)
 
   | Cons ( Atom (Identifier id), in_quote) when (id = (Identifier.identifier_of_string "quote")) -> 
-        ExprQuote in_quote
-  | Cons ( Atom (Identifier id), 
-    Cons (e1, (Cons (e2, Cons (e3, Nil))))) when (id = (Identifier.identifier_of_string "if")) ->
-        ExprIf (read_expression e1, read_expression e2, read_expression e3)
+      ExprQuote in_quote
+  | Cons ( Atom (Identifier id), Cons (e1, (Cons (e2, Cons (e3, Nil))))) when (id = (Identifier.identifier_of_string "if")) ->
+      ExprIf (read_expression e1, read_expression e2, read_expression e3)
+  | Cons ( Atom (Identifier id), Cons ( variables, expressions) ) when (id = (Identifier.identifier_of_string("lambda"))) ->
+      ExprLambda ((cons_to_var_list variables []), (cons_to_expr_list expressions []))
   | Cons ( Atom (Identifier id), the_rest) when Identifier.is_valid_variable id->
-        ExprProcCall ( ExprVariable (Identifier.variable_of_identifier id), cons_to_expr_list the_rest [] ) 
-
-       (*| Atom (Identifier id) -> when id = "lambda" -> failwith "lambda"
-       | Atom (Identifier id) -> when id = "set!" -> failwith "set!"
+      ExprProcCall ( ExprVariable (Identifier.variable_of_identifier id), cons_to_expr_list the_rest [] ) 
+  | Cons ( Cons ( Atom (Identifier id), Cons ( variables, expressions) ), arguments) when (id = (Identifier.identifier_of_string("lambda"))) ->
+      ExprProcCall ( ExprLambda ((cons_to_var_list variables []), (cons_to_expr_list expressions [])),
+                      (cons_to_expr_list arguments []))
+  | Cons ( Atom (Identifier id), Cons ( Atom ( Identifier var), Cons (expr, Nil)) ) when (id = Identifier.identifier_of_string("set!")) ->
+      ExprAssignment ( (Identifier.variable_of_identifier var), read_expression expr)
+(*
        | Atom (Identifier id) -> when id = "let" -> failwith "let"
        | Atom (Identifier id) -> when id = "let*" -> failwith "let*"
-       | Atom (Identifier id) -> when id = "letrec" -> failwith "letrec"
-       | Atom (Identifier id) when Identifier.is_valid_variable id ->
-          ExprVariable id *)
+       | Atom (Identifier id) -> when id = "letrec" -> failwith "letrec"*)
   | _ -> failwith "read failed"
-     (* Above match case didn't succeed, so id is not a valid variable. *)
- (* | _ -> failwith "Everything you do is just amazing!"*)
+
 
 
 (* Parses a datum into a toplevel input. toplevel = definition | expression. 
@@ -55,7 +62,13 @@ let rec read_expression (input : datum) : expression =
    parsing failed.*) 
 let read_toplevel (input : datum) : toplevel =
   match input with
+<<<<<<< HEAD
   | _ -> failwith "Sing the Rowing Song!"
+=======
+  | Cons (Atom (Identifier id), Cons( Atom (Identifier var), Cons( expr, Nil ))) when (id = (Identifier.identifier_of_string("define")))-> 
+      ToplevelDefinition ((Identifier.variable_of_identifier var), read_expression expr)
+  | _ -> ToplevelExpression (read_expression input )
+>>>>>>> e4d58ed79cf347591ca1ef247f63c63fbb4bea9c
 
 (* This function returns an initial environment with any built-in
    bound variables. *)
@@ -144,13 +157,13 @@ and eval (expression : expression) (env : environment) : value =
     | hd::tl -> expr_list_to_val_list tl ((eval hd env)::acc)
     | _ -> List.rev(acc) in
 
-  let variable_eval (var_expr: variable) (env: environment) : value =
-    !(Environment.get_binding env var_expr) in
-
   let self_eval_eval (se_expr: self_evaluating) : value =
     match se_expr with
     | SEInteger integer -> ValDatum (Atom (Integer integer))
     | SEBoolean boolean -> ValDatum (Atom (Boolean boolean)) in
+
+  let variable_eval (var_expr: variable) (env: environment) : value =
+    !(Environment.get_binding env var_expr) in
 
   let quote_eval (quote_expr : datum) : value =
     match quote_expr with
@@ -158,26 +171,64 @@ and eval (expression : expression) (env : environment) : value =
     | _ -> failwith "quote_eval shouldn't be coming here..." in
 
   let if_eval (e1: expression) (e2: expression) (e3: expression) (env: environment) : value =
-    if (e1 = (ExprSelfEvaluating (SEBoolean false))) then (eval e3 env) else (eval e2 env) in
+    if ((eval e1 env) = ValDatum ( Atom (Boolean false))) then (eval e3 env) else (eval e2 env) in
+
+  let lambda_eval (variables: variable list) (expressions: expression list) : value =
+    let rec check_dups (vars: variable list) (no_dups: bool) : bool=
+      let rec check_tail (head: variable) (tail: variable list) (acc:bool) : bool =
+        match tail with
+        | hd::tl -> check_tail head tl (acc && (hd<>head))
+        | _ -> acc in
+      match vars with 
+      | hd::[] -> no_dups
+      | hd::tl -> check_dups tl ((check_tail hd tl true) && no_dups)
+      | _  -> no_dups in
+    if (check_dups variables true) then 
+      ValProcedure (ProcLambda (variables, env, expressions)) 
+    else
+      failwith "duplicate variables for lambda" in
+
+
+  let rec add_temp_bindings (env: environment) (variables: variable list)
+  (arguments: expression list) : environment =
+    match variables, arguments with
+    | var::vars, arg::args -> 
+        let arg_ref = ref (eval arg env) in
+        add_temp_bindings (Environment.add_binding env (var, arg_ref)) vars args
+    | [], [] -> env 
+    | _ -> failwith "wrong number of arguments to lambda procedure call" in
+
+  let assign_eval (var: variable) (expr: expression) : value =
+    if (Environment.is_bound env var) then 
+      let var_binding = (Environment.get_binding env var) in
+      var_binding := (eval expr env);
+      ValDatum Nil
+    else 
+      failwith "variable must already be bound" in
+    
+  let proc_lambda_eval (variables: variable list) (env: environment) (expressions: expression list)
+   (arguments: expression list) : value =
+    let rec proc_lambda_eval_helper (expr_list: expression list) (temp_env: environment) 
+     (acc:value): value=
+      match expr_list with
+      | hd::tl -> proc_lambda_eval_helper tl temp_env (eval hd temp_env)
+      | _ -> acc in
+    proc_lambda_eval_helper expressions (add_temp_bindings env variables arguments) (ValDatum Nil) in
 
   match expression with
 
   | ExprSelfEvaluating se -> self_eval_eval se
   | ExprVariable variable -> variable_eval variable env
   | ExprQuote datum       -> quote_eval datum
-  | ExprLambda (_, _) -> failwith "lambda"
+  | ExprLambda (var_list, expr_list) -> lambda_eval var_list expr_list
+  | ExprProcCall (ExprLambda (var_list, expr_list), arguments) -> proc_lambda_eval var_list env expr_list arguments
   | ExprProcCall (ExprVariable id, e_list) -> 
-(*   and procedure =
-  | ProcLambda of variable list * environment * expression list
-  value =
-  | ValProcedure of procedure
- *)
       (match (!(Environment.get_binding env id)) with
        | ValProcedure (ProcBuiltin builtin) -> builtin (expr_list_to_val_list e_list []) env
+       | ValProcedure (ProcLambda (var_list, temp_env, expr_list)) -> proc_lambda_eval var_list temp_env expr_list e_list
        | _ -> failwith "not a valid proc call")
   | ExprIf (e1, e2, e3) -> if_eval e1 e2 e3 env
-  | ExprAssignment (_, _) ->
-     failwith "Say something funny, Rower!"
+  | ExprAssignment (var, expr) -> assign_eval var expr
   | ExprLet (_, _)
   | ExprLetStar (_, _)
   | ExprLetRec (_, _)     ->
@@ -186,12 +237,23 @@ and eval (expression : expression) (env : environment) : value =
 
 (* Evaluates a toplevel input down to a value and an output environment in a
    given environment. *)
-let eval_toplevel (toplevel : toplevel) (env : environment) :
-      value * environment =
+let eval_toplevel (toplevel : toplevel) (env : environment) : value * environment =
+  
+  let definition_eval (var: variable) (expr: expression) : value * environment = 
+    let check_var (v: variable) : environment =
+      if (Environment.is_bound env v) then
+        env
+      else 
+        let bind_v = ref (ValDatum Nil) in
+        Environment.add_binding env (v, bind_v) in
+    let temp_env = check_var var in
+    let var_binding = (Environment.get_binding temp_env var) in
+    var_binding := (eval expr temp_env);
+    ( ValDatum Nil, temp_env) in
+
   match toplevel with
   | ToplevelExpression expression -> (eval expression env, env)
-  | ToplevelDefinition (_, _)     ->
-     failwith "I couldn't have done it without the Rower!"
+  | ToplevelDefinition (var, expr) ->  definition_eval var expr 
 
 let rec string_of_value value =
   let rec string_of_datum datum =
