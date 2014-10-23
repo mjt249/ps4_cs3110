@@ -29,7 +29,7 @@ module ListIterator : LIST_ITERATOR = struct
   exception NoResult
 
   let has_next (stack: 'a t) : bool =
-    Stack.is_empty stack
+    not(Stack.is_empty stack)
 
   let next (stack: 'a t) : 'a =
     try Stack.pop stack with Stack.Empty -> raise NoResult 
@@ -57,13 +57,13 @@ module type INORDER_TREE_ITERATOR = sig
   val create: 'a tree -> 'a t
 end
 
-
+(* 
  module InorderTreeIterator : INORDER_TREE_ITERATOR = struct
     type 'a t = 'a Stack.t
   exception NoResult
 
   let has_next (stack: 'a t) : bool =
-    Stack.is_empty stack
+    not(Stack.is_empty stack)
 
   let next (stack: 'a t) : 'a =
     try Stack.pop stack with Stack.Empty -> raise NoResult 
@@ -76,7 +76,7 @@ end
        hd::tl -> (Stack.push hd acc); create_helper tl
       | _ -> acc in
     create_helper rev_l
-end
+end  *)
  
 
 module type TAKE_ITERATOR = functor (I: ITERATOR) -> sig
@@ -89,19 +89,43 @@ module type TAKE_ITERATOR = functor (I: ITERATOR) -> sig
   val create: int -> 'a I.t -> 'a t
 end
 
-(* 
+
 module TakeIterator : TAKE_ITERATOR = functor (I : ITERATOR) -> struct
-  type stk = 'a Stack.t
-  let has_next = I.has_next
+  open I
+  exception NoResult
+
+
+
+  type 'a t = 'a Stack.t
+
   
+  
+
+
+  let next (stack: 'a t) : 'a = I.next
+
   let create (n: int) (iter : 'a I.t) : 'a t =
-     let rec resizer (current: int) : 'a t
+    
 
+    let create_help (l: 'a list) : 'a t =
+       let rev_l = List.rev(l) in
+       let acc : 'a t = Stack.create() in
+       let rec create_helper (lst: 'a list)  =
+          match lst with 
+          hd::tl -> (Stack.push hd acc); create_helper tl
+          | _ -> acc in
+       create_helper rev_l
+    in
+     let rec resizer (current: int) (accum: 'a list): 'a list =
+        if (current <= 0) then accum
+        else  resizer (current - 1) ((I.next iter)::accum)
+      in
 
-  let next = I.create 
+     let lst : 'a list = List.rev((resizer n [])) in
+     (create_help lst)
 end
 
- *)
+
 module IteratorUtilsFn (I : ITERATOR) = struct
   open I
 
