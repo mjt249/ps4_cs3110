@@ -91,18 +91,17 @@ end
 
 
 module TakeIterator : TAKE_ITERATOR = functor (I : ITERATOR) -> struct
-  open I
+  
   exception NoResult
 
 
-
-  type 'a t = 'a Stack.t
-
+ type 'a t = 'a Stack.t
   
   
 
 
-  let next (stack: 'a t) : 'a = I.next
+  let next :'a  = (I.next)
+  let has_next : 'a t -> bool = (I.has_next)
 
   let create (n: int) (iter : 'a I.t) : 'a t =
     
