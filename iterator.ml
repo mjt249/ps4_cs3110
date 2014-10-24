@@ -94,19 +94,16 @@ module TakeIterator : TAKE_ITERATOR = functor (I : ITERATOR) -> struct
   open I
   exception NoResult
 
-
-
   type 'a t = 'a Stack.t
 
-  
-  
+  let next (stack: 'a t) : 'a =
+    try Stack.pop stack with Stack.Empty -> raise NoResult 
 
-
-  let next (stack: 'a t) : 'a = I.next
+  let has_next (stack: 'a t) : bool =
+    not(Stack.is_empty stack)
 
   let create (n: int) (iter : 'a I.t) : 'a t =
     
-
     let create_help (l: 'a list) : 'a t =
        let rev_l = List.rev(l) in
        let acc : 'a t = Stack.create() in
