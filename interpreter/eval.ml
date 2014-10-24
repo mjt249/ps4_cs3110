@@ -199,13 +199,22 @@ and eval (expression : expression) (env : environment) : value =
       failwith "duplicate variables for lambda" in
 
 
-  let rec add_temp_bindings (env: environment) (variables: variable list)
+  let rec add_temp_bindings (temp_env: environment) (variables: variable list)
+  (arguments: expression list) : environment =
+    match variables, arguments with
+    | var::vars, arg::args -> 
+        let arg_ref = ref (eval arg temp_env) in
+        add_temp_bindings (Environment.add_binding temp_env (var, arg_ref)) vars args
+    | [], [] -> temp_env 
+    | _ -> failwith "wrong number of arguments to lambda procedure call" in
+
+  let rec simultaneous_add_temp_bindings (temp_env: environment) (variables: variable list)
   (arguments: expression list) : environment =
     match variables, arguments with
     | var::vars, arg::args -> 
         let arg_ref = ref (eval arg env) in
-        add_temp_bindings (Environment.add_binding env (var, arg_ref)) vars args
-    | [], [] -> env 
+        simultaneous_add_temp_bindings (Environment.add_binding temp_env (var, arg_ref)) vars args
+    | [], [] -> temp_env 
     | _ -> failwith "wrong number of arguments to lambda procedure call" in
 
   let assign_eval (var: variable) (expr: expression) : value =
@@ -223,9 +232,8 @@ and eval (expression : expression) (env : environment) : value =
       | hd::tl -> proc_lambda_eval_helper tl temp_env (eval hd temp_env)
       | _ -> acc in 
 
-  let proc_lambda_eval (variables: variable list) (env: environment) (expressions: expression list)
-   (arguments: expression list) : value =
-    proc_lambda_eval_helper expressions (add_temp_bindings env variables arguments) (ValDatum Nil) in
+  let proc_lambda_eval  (temp_env: environment) (expressions: expression list) : value =
+    proc_lambda_eval_helper expressions temp_env (ValDatum Nil) in
 
 
   let rec separate_bindings (bind_l: let_binding list) (acc: variable list * expression list) =
@@ -249,7 +257,7 @@ and eval (expression : expression) (env : environment) : value =
   let func_let (bind_lst: let_binding list) ( expr: expression list) : value =
     let rec var_lst_maker (vlst: variable list * expression list) (new_vlists: variable list * expression list ) =
          match vlst with
-          |(hd::tl,hd2::tl2) -> if (List.exists (fun x -> (hd = x)) (tl)) then failwith "multiple same variables"
+          |(hd::tl,hd2::tl2) -> if (List.exists (fun x -> (hd = x)) (tl)) then failwith "duplicate variables"
              else var_lst_maker (tl,tl2) ((hd::(fst new_vlists)), (hd2::(snd new_vlists)))
           | ([],[]) -> new_vlists 
           | _ -> failwith "error"
@@ -257,7 +265,7 @@ and eval (expression : expression) (env : environment) : value =
     let not_reversed_sep = (separate_bindings bind_lst ([],[])) in
     let checked_for_dups = var_lst_maker not_reversed_sep ([],[]) in
     
-    proc_lambda_eval (fst checked_for_dups) env expr (snd checked_for_dups)
+    proc_lambda_eval (simultaneous_add_temp_bindings env (fst checked_for_dups) (snd checked_for_dups)) expr
   in
 
 
@@ -267,11 +275,11 @@ and eval (expression : expression) (env : environment) : value =
   | ExprVariable variable -> variable_eval variable env
   | ExprQuote datum       -> quote_eval datum
   | ExprLambda (var_list, expr_list) -> lambda_eval var_list expr_list
-  | ExprProcCall (ExprLambda (var_list, expr_list), arguments) -> proc_lambda_eval var_list env expr_list arguments
+  | ExprProcCall (ExprLambda (var_list, expr_list), arguments) -> proc_lambda_eval (add_temp_bindings env var_list arguments) expr_list
   | ExprProcCall (ExprVariable id, e_list) -> 
       (match (!(Environment.get_binding env id)) with
        | ValProcedure (ProcBuiltin builtin) -> builtin (expr_list_to_val_list e_list []) env
-       | ValProcedure (ProcLambda (var_list, temp_env, expr_list)) -> proc_lambda_eval var_list temp_env expr_list e_list
+       | ValProcedure (ProcLambda (var_list, temp_env, expr_list)) -> proc_lambda_eval (add_temp_bindings temp_env var_list e_list) expr_list
        | _ -> failwith "not a valid proc call")
   | ExprIf (e1, e2, e3) -> if_eval e1 e2 e3 env
   | ExprAssignment (var, expr) -> assign_eval var expr
