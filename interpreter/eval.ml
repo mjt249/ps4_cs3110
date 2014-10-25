@@ -156,9 +156,6 @@ let rec initial_environment () : environment =
 
 
 
-
-
-
 (* Evaluates an expression down to a value in a given environment. *)
 (* You may want to add helper functions to make this function more
    readable, because it will get pretty long!  A good rule of thumb

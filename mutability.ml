@@ -1,9 +1,17 @@
 let count_up_counter = ref 0
-let next_val (counter: int ref) : unit -> int = fun () ->
-  (counter := (!counter) +1;
-  !counter)
+let count_up_n = ref 0
+let count_up_k = ref 0
+let next_val (n: int) (k: int) (counter: int ref) : unit -> int = fun () ->
+  if (((!count_up_n) = n) && ((!count_up_k) = k)) then
+    (counter := (!counter) +1;
+    !counter)
+  else 
+    (counter := 1;
+    count_up_n := n;
+    count_up_k := k;
+    !counter)
 let count_up_from n k =  fun () ->
-  let i = next_val count_up_counter () in
+  let i = next_val n k count_up_counter () in
   n + (i-1)*k
 
 let tabulate f n =
