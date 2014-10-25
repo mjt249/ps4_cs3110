@@ -14,8 +14,7 @@ module type ITERATOR = sig
 end
 
 (*Test Code Below*)
-
-(* module Iterator : ITERATOR = struct
+module Iterator : ITERATOR = struct
 
   
   type 'a t = 'a Stack.t
@@ -28,15 +27,15 @@ end
   let next (stack: 'a t) : 'a =
     try Stack.pop stack with Stack.Empty -> raise NoResult 
 
-  let create (l: 'a list) : 'a t =
+(*   let create (l: 'a list) : 'a t =
     let rev_l = List.rev(l) in
     let acc : 'a t = Stack.create() in
     let rec create_helper (lst: 'a list)  =
       match lst with 
        hd::tl -> (Stack.push hd acc); create_helper tl
       | _ -> acc in
-    create_helper rev_l
-end *)
+    create_helper rev_l*)
+end  
 (*Test Code Above*)
 
 module type LIST_ITERATOR = sig
@@ -146,20 +145,17 @@ module type TAKE_ITERATOR = functor (I: ITERATOR) -> sig
   val create: int -> 'a I.t -> 'a t
 end
 
-(*
+
 module TakeIterator : TAKE_ITERATOR = functor (I : ITERATOR) -> struct
-  
-  exception NoResult
-
-
+  open I
   type 'a t = 'a Stack.t
+  exception NoResult
 
   let next (stack: 'a t) : 'a =
     try Stack.pop stack with Stack.Empty -> raise NoResult 
 
   let has_next (stack: 'a t) : bool =
     not(Stack.is_empty stack)
-
 
   let create (n: int) (iter : 'a I.t) : 'a t =
     
@@ -180,7 +176,7 @@ module TakeIterator : TAKE_ITERATOR = functor (I : ITERATOR) -> struct
      let lst : 'a list = List.rev((resizer n [])) in
      (create_help lst)
 end
-*)
+
 
 module IteratorUtilsFn (I : ITERATOR) = struct
   open I
@@ -193,12 +189,23 @@ module IteratorUtilsFn (I : ITERATOR) = struct
   let has_next (stack: 'a t) : bool =
     not(Stack.is_empty stack)
 
+  let create (l: 'a list) : 'a t =
+    let rev_l = List.rev(l) in
+    let acc : 'a t = Stack.create() in
+    let rec create_helper (lst: 'a list)  =
+      match lst with 
+       hd::tl -> (Stack.push hd acc); create_helper tl
+      | _ -> acc in
+    create_helper rev_l
+
+
   (* effects: causes i to yield n results, ignoring
    *   those results.  Raises NoResult if i does.  *)
   let advance (n: int) (iter: 'a I.t) : unit =
     let rec advancer (current: int) : unit =
        if (current <= 0) then ()
      else I.next iter ; advancer (current - 1)
+   in
     advancer n
    
   (* returns: the final value of the accumulator after
@@ -208,6 +215,7 @@ module IteratorUtilsFn (I : ITERATOR) = struct
   let rec fold (f : ('a -> 'b -> 'a)) (acc : 'a) (iter: 'b I.t) : 'a =
      if(I.has_next iter) then fold f (f acc (I.next iter)) iter
    else acc
+
 end
 
 module type RANGE_ITERATOR = functor (I : ITERATOR) -> sig
@@ -223,8 +231,62 @@ module type RANGE_ITERATOR = functor (I : ITERATOR) -> sig
   val create : int -> int -> 'a I.t -> 'a t
 end
 
-(* TODO:
+module UtilApplied = IteratorUtilsFn(ListIterator)
+module TakeApplied = TakeIterator(ListIterator)
+
+(* module Tester = TakeIterator(ListIterator)
+let lst = [1;2;3]
+let itr1 = ListIterator.create lst
+let itr  = Tester.create 2 itr1
+TEST_UNIT "TAKE" =
+assert_true (Tester.has_next itr)  *)
+
 module RangeIterator : RANGE_ITERATOR = functor (I : ITERATOR) -> struct
-  ...
-end
-*)
+
+
+exception NoResult
+
+
+  type 'a t = 'a Stack.t
+
+  let next (stack: 'a t) : 'a = UtilApplied.next stack
+
+  let has_next (stack: 'a t) : bool = UtilApplied.has_next stack
+
+
+ let create (n: int) (m: int) (iter: 'a I.t): 'a t =
+
+  let creater (n: int) (iter : 'a I.t) : 'a t =
+    
+    let create_help (l: 'a list) : 'a t =
+       let rev_l = List.rev(l) in
+       let acc : 'a t = Stack.create() in
+       let rec create_helper (lst: 'a list)  =
+          match lst with 
+          hd::tl -> (Stack.push hd acc); create_helper tl
+          | _ -> acc in
+       create_helper rev_l
+    in
+     let rec resizer (current: int) (accum: 'a list): 'a list =
+        if (current <= 0) then accum
+        else  resizer (current - 1) ((I.next iter)::accum)
+      in
+
+     let lst : 'a list = List.rev((resizer n [])) in
+     (create_help lst)
+   in
+(*  let advance (n: int) (iter: 'a I.t) : unit =
+    let rec advancer (current: int) : unit =
+       if (current <= 0) then ()
+     else I.next iter ; advancer (current - 1)
+   in
+    advancer n *)
+
+  (* let x = advance n iter in *)
+  creater m iter 
+    (*  let new_iter : 'a t = TakeApplied.create m iter in*)
+      
+    
+
+
+end 
