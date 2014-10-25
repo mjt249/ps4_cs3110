@@ -247,16 +247,18 @@ and eval (expression : expression) (env : environment) : value =
   let lambda_eval (variables: variable list) (expressions: expression list) : value =
       ValProcedure (ProcLambda (variables, env, expressions)) in
 
-
+(*for letstar : in order*)
   let rec add_temp_bindings (temp_env: environment) (variables: variable list)
   (arguments: expression list) : environment =
     match variables, arguments with
     | var::vars, arg::args -> 
-        let arg_ref = ref (eval arg env) in
+        let arg_ref = ref (eval arg temp_env) in
         add_temp_bindings (Environment.add_binding temp_env (var, arg_ref)) vars args
     | [], [] -> temp_env 
     | _ -> failwith "wrong number of arguments to lambda procedure call" in
 
+
+(*for letrec and lambda*)
   let rec simultaneous_add_temp_bindings (temp_env: environment) (variables: variable list)
   (arguments: expression list) : environment =
     match variables, arguments with
@@ -355,7 +357,7 @@ and eval (expression : expression) (env : environment) : value =
         match (!(Environment.get_binding env var)) with
         | ValProcedure (ProcBuiltin builtin) -> builtin (expr_list_to_val_list e_list []) env
         | ValProcedure (ProcLambda (var_list, temp_env, expr_list)) -> 
-            proc_lambda_eval (add_temp_bindings temp_env var_list e_list) expr_list
+            proc_lambda_eval (simultaneous_add_temp_bindings temp_env var_list e_list) expr_list
         | ValDatum dat -> failwith ((Identifier.string_of_variable var)^": why the fuck is this a datum")
       else 
         failwith ((Identifier.string_of_variable var)^" is not bound")
