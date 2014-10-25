@@ -282,7 +282,7 @@ exception NoResult
    in
     advancer n *)
 
-  (* let x = advance n iter in *)
+  let x = advance n iter in
   creater m iter 
     (*  let new_iter : 'a t = TakeApplied.create m iter in*)
       
