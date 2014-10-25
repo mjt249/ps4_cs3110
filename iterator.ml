@@ -27,16 +27,7 @@ module Iterator : ITERATOR = struct
   let next (stack: 'a t) : 'a =
     try Stack.pop stack with Stack.Empty -> raise NoResult 
 
-(*   let create (l: 'a list) : 'a t =
-    let rev_l = List.rev(l) in
-    let acc : 'a t = Stack.create() in
-    let rec create_helper (lst: 'a list)  =
-      match lst with 
-       hd::tl -> (Stack.push hd acc); create_helper tl
-      | _ -> acc in
-    create_helper rev_l*)
 end  
-(*Test Code Above*)
 
 module type LIST_ITERATOR = sig
   include ITERATOR
@@ -145,7 +136,6 @@ module type TAKE_ITERATOR = functor (I: ITERATOR) -> sig
   val create: int -> 'a I.t -> 'a t
 end
 
-
 module TakeIterator : TAKE_ITERATOR = functor (I : ITERATOR) -> struct
   open I
   type 'a t = 'a Stack.t
@@ -177,36 +167,19 @@ module TakeIterator : TAKE_ITERATOR = functor (I : ITERATOR) -> struct
      (create_help lst)
 end
 
-
+(*advance i yields n results*)
 module IteratorUtilsFn (I : ITERATOR) = struct
-  open I
-  type 'a t = 'a Stack.t
+  type 'a t = 'a I.t
   exception NoResult
 
-  let next (stack: 'a t) : 'a =
-    try Stack.pop stack with Stack.Empty -> raise NoResult 
-
-  let has_next (stack: 'a t) : bool =
-    not(Stack.is_empty stack)
-
-  let create (l: 'a list) : 'a t =
-    let rev_l = List.rev(l) in
-    let acc : 'a t = Stack.create() in
-    let rec create_helper (lst: 'a list)  =
-      match lst with 
-       hd::tl -> (Stack.push hd acc); create_helper tl
-      | _ -> acc in
-    create_helper rev_l
-
-
-  (* effects: causes i to yield n results, ignoring
+  (* requires: n is positive
+       effects: causes i to yield n results, ignoring
    *   those results.  Raises NoResult if i does.  *)
   let advance (n: int) (iter: 'a I.t) : unit =
-    let rec advancer (current: int) : unit =
-       if (current <= 0) then ()
-     else I.next iter ; advancer (current - 1)
-   in
-    advancer n
+    let n_ref = ref n in
+    while (!n_ref) <> 0 do
+      ignore (I.next iter)
+   done
    
   (* returns: the final value of the accumulator after
    *   folding f over all the results returned by i,
@@ -231,32 +204,29 @@ module type RANGE_ITERATOR = functor (I : ITERATOR) -> sig
   val create : int -> int -> 'a I.t -> 'a t
 end
 
-module UtilApplied = IteratorUtilsFn(ListIterator)
-module TakeApplied = TakeIterator(ListIterator)
-
-(* module Tester = TakeIterator(ListIterator)
-let lst = [1;2;3]
-let itr1 = ListIterator.create lst
-let itr  = Tester.create 2 itr1
-TEST_UNIT "TAKE" =
-assert_true (Tester.has_next itr)  *)
 
 module RangeIterator : RANGE_ITERATOR = functor (I : ITERATOR) -> struct
+  module UtilApplied = IteratorUtilsFn(I)
+  module TakeApplied = TakeIterator(I)
 
 
-exception NoResult
+  exception NoResult
 
 
-  type 'a t = 'a Stack.t
+  type 'a t = 'a I.t
 
-  let next (stack: 'a t) : 'a = UtilApplied.next stack
+  let next (stack: 'a t) : 'a = I.next stack
 
-  let has_next (stack: 'a t) : bool = UtilApplied.has_next stack
+  let has_next (stack: 'a t) : bool = I.has_next stack
 
 
- let create (n: int) (m: int) (iter: 'a I.t): 'a t =
-
+  let create (n: int) (m: int) (iter: 'a I.t): 'a t =
+    failwith "
+    let create_1 = TakeApplied.create m iter in
+    UtilApplied.advance n create_1; create_1"
+(* 
   let creater (n: int) (iter : 'a I.t) : 'a t =
+
     
     let create_help (l: 'a list) : 'a t =
        let rev_l = List.rev(l) in
@@ -285,7 +255,7 @@ exception NoResult
   (* let x = advance n iter in *)
   creater m iter 
     (*  let new_iter : 'a t = TakeApplied.create m iter in*)
-      
+       *)
     
 
 
