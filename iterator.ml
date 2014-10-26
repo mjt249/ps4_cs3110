@@ -246,10 +246,10 @@ module RangeIterator : RANGE_ITERATOR = functor (I : ITERATOR) -> struct
      let lst : 'a list = List.rev((resizer n [])) in
      (create_help lst)
 
-(*includes n but excludes m*)
+(*includes n and m*)
   let create (n: int) (m: int) (iter: 'a I.t): 'a t =
     UtilApplied.advance n iter;
-    create_n (m-n) iter
+    create_n (m-n + 1) iter
 
 end
 
