@@ -21,6 +21,7 @@ module type LIST_ITERATOR = sig
    *   starting with the head.  *)
   val create: 'a list -> 'a t
 end
+
 (*Precondition: create takes an 'a list to make an iterator that will return
 *the elements of the list one at a time.
 *Postcondition: Will raise NoResult if next is called on an 
@@ -28,13 +29,17 @@ end
 *)
 module ListIterator : LIST_ITERATOR = struct
 
-  
   type 'a t = 'a Stack.t
   exception NoResult
 
+  (*returns: stack has a next element to yield.*)
   let has_next (stack: 'a t) : bool =
     not(Stack.is_empty stack)
-
+  
+  (* returns:  the next result, if there are more results
+   *   to yield.  Otherwise raises NoResult.
+   * effects:  modifies the state of the iterator to record
+   *   the yield. *)
   let next (stack: 'a t) : 'a =
     try Stack.pop stack with Stack.Empty -> raise NoResult 
 
@@ -70,12 +75,21 @@ end
     type 'a t = 'a Stack.t
   exception NoResult
 
+  (*returns: stack has a next element to yield.*)
   let has_next (stack: 'a t) : bool =
     not(Stack.is_empty stack)
 
+  (* returns:  the next result, if there are more results
+   *   to yield.  Otherwise raises NoResult.
+   * effects:  modifies the state of the iterator to record
+   *   the yield. *)
   let next (stack: 'a t) : 'a =
     try Stack.pop stack with Stack.Empty -> raise NoResult           
     
+  (*Precondition: InorderTreeIterator takes an 'a tree.This initial 'a tree must
+  *not be a Leaf or the behavior is undefined.
+  *Postcondition: This iterator with give the 'a 's of the tree in 
+  *inorder traversal order*)
   let create (l: 'a tree) : 'a t =
     
   let is_tree_visited (tre:'a tree) (tre_lst: 'a tree list):bool =
@@ -147,12 +161,23 @@ module TakeIterator : TAKE_ITERATOR = functor (I : ITERATOR) -> struct
   type 'a t = 'a Stack.t
   exception NoResult
 
+  (* returns:  the next result, if there are more results
+   *   to yield.  Otherwise raises NoResult.
+   * effects:  modifies the state of the iterator to record
+   *   the yield. *)
   let next (stack: 'a t) : 'a =
     try Stack.pop stack with Stack.Empty -> raise NoResult 
 
+  (*returns: stack has a next element to yield.*)
   let has_next (stack: 'a t) : bool =
     not(Stack.is_empty stack) 
 
+  (*Precondition: To create an iterator after applying Take ITerator
+  *to an ITERATOR module, pass int n and iter 'a I.t. n must be 0<= n <
+  *number of 'as or will raise NoResult
+  *Postcondition: returns:  an iterator that behaves the same as i for
+  *exactly n calls to next, but afterwards
+  *raises NoResult *)
   let create (n: int) (iter : 'a I.t) : 'a t =
     
     let create_help (l: 'a list) : 'a t =
@@ -223,9 +248,14 @@ module RangeIterator : RANGE_ITERATOR = functor (I : ITERATOR) -> struct
   type 'a t = 'a Stack.t
   exception NoResult
 
+  (* returns:  the next result, if there are more results
+   *   to yield.  Otherwise raises NoResult.
+   * effects:  modifies the state of the iterator to record
+   *   the yield. *)
   let next (stack: 'a t) : 'a =
     try Stack.pop stack with Stack.Empty -> raise NoResult 
 
+  (*returns: stack has a next element to yield.*)
   let has_next (stack: 'a t) : bool =
     not(Stack.is_empty stack)
 
@@ -248,8 +278,11 @@ module RangeIterator : RANGE_ITERATOR = functor (I : ITERATOR) -> struct
      let lst : 'a list = List.rev((resizer n [])) in
      (create_help lst)
 
-  (*requires: n <= m and n non-negative*)
-
+  (*requires: n <= m and n non-negative
+   Precondition:Create takes int n, int m, and iter requires:
+   n <= m and n non-negative. 
+   Postcondition: If the iter passed would normally produce 1,2,3,4,5,6
+   and n = 2 and m = 4 then will return 3,4,5 instead.*)
   let create (n: int) (m: int) (iter: 'a I.t): 'a t =
     UtilApplied.advance n iter;
     create_n (m-n + 1) iter
