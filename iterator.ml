@@ -246,44 +246,13 @@ module RangeIterator : RANGE_ITERATOR = functor (I : ITERATOR) -> struct
      let lst : 'a list = List.rev((resizer n [])) in
      (create_help lst)
 
-
+(*includes n but excludes m*)
   let create (n: int) (m: int) (iter: 'a I.t): 'a t =
     UtilApplied.advance n iter;
     create_n (m-n) iter
 
 end
-(* 
-  let creater (n: int) (iter : 'a I.t) : 'a t =
 
-    
-    let create_help (l: 'a list) : 'a t =
-       let rev_l = List.rev(l) in
-       let acc : 'a t = Stack.create() in
-       let rec create_helper (lst: 'a list)  =
-          match lst with 
-          hd::tl -> (Stack.push hd acc); create_helper tl
-          | _ -> acc in
-       create_helper rev_l
-    in
-     let rec resizer (current: int) (accum: 'a list): 'a list =
-        if (current <= 0) then accum
-        else  resizer (current - 1) ((I.next iter)::accum)
-      in
-
-     let lst : 'a list = List.rev((resizer n [])) in
-     (create_help lst)
-   in
-(*  let advance (n: int) (iter: 'a I.t) : unit =
-    let rec advancer (current: int) : unit =
-       if (current <= 0) then ()
-     else I.next iter ; advancer (current - 1)
-   in
-    advancer n *)
-
-  let x = advance n iter in
-  creater m iter 
-    (*  let new_iter : 'a t = TakeApplied.create m iter in*)
-       *)
     
 
 
