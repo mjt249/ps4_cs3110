@@ -178,6 +178,7 @@ module IteratorUtilsFn (I : ITERATOR) = struct
   let advance (n: int) (iter: 'a I.t) : unit =
     let n_ref = ref n in
     while (!n_ref) <> 0 do
+      n_ref := (!n_ref) -1;
       ignore (I.next iter)
    done
    
@@ -204,7 +205,7 @@ module type RANGE_ITERATOR = functor (I : ITERATOR) -> sig
   val create : int -> int -> 'a I.t -> 'a t
 end
 
-
+(* 
 module RangeIterator : RANGE_ITERATOR = functor (I : ITERATOR) -> struct
   module UtilApplied = IteratorUtilsFn(I)
   module TakeApplied = TakeIterator(I)
@@ -221,9 +222,9 @@ module RangeIterator : RANGE_ITERATOR = functor (I : ITERATOR) -> struct
 
 
   let create (n: int) (m: int) (iter: 'a I.t): 'a t =
-    failwith "
+
     let create_1 = TakeApplied.create m iter in
-    UtilApplied.advance n create_1; create_1"
+    UtilApplied.advance n create_1; create_1 *)
 (* 
   let creater (n: int) (iter : 'a I.t) : 'a t =
 
@@ -259,4 +260,4 @@ module RangeIterator : RANGE_ITERATOR = functor (I : ITERATOR) -> struct
     
 
 
-end 
+
