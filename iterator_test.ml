@@ -1,7 +1,7 @@
 open Iterator
 open Assertions
-open ListIterator 
-
+(* open ListIterator  *)
+open InorderTreeIterator
 
 (* 
  
@@ -23,8 +23,29 @@ assert_true ((next itr) = 3)
 TEST_UNIT "Next_7" =
 assert_false (has_next itr) 
  *)
+(* 
+type 'a tree = Leaf | Node of ('a * 'a tree * 'a tree) *)
+let a = 1
+let b = 2
+let c = 3
+let tre : 'a tree = Node(b,Node(a,Leaf,Leaf),Node(c,Leaf,Leaf))
+let itr = InorderTreeIterator.create tre
 
-
+TEST_UNIT "Next_1" =
+assert_true (has_next itr)
+TEST_UNIT "Next_2" =
+assert_true ((next itr) = 1)
+TEST_UNIT "Next_3" =
+assert_true (has_next itr)
+TEST_UNIT "Next_4" =
+assert_true ((next itr) = 2)
+TEST_UNIT "Next_5" =
+assert_true (has_next itr)
+TEST_UNIT "Next_6" =
+assert_true ((next itr) = 3)
+TEST_UNIT "Next_7" =
+assert_false (has_next itr) 
+(* 
 module Tester = TakeIterator(ListIterator)
 let lst = [1;2;3]
 let itr1 = ListIterator.create lst
@@ -65,7 +86,7 @@ assert_true (ListIterator.has_next itr2)
 TEST_UNIT "Next_6" =
 assert_true ((ListIterator.next itr2) = 3)
 TEST_UNIT "Next_7" =
-assert_false (ListIterator.has_next itr2) 
+assert_false (ListIterator.has_next itr2)  *)
 (* 
 module Tester3 = RangeIterator(ListIterator)
 let lst3 = [1;2;3]

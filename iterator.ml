@@ -61,8 +61,10 @@ module ListIterator : LIST_ITERATOR = struct
 
 end
 
-(*
+
 type 'a tree = Leaf | Node of ('a * 'a tree * 'a tree)
+
+
 
 module type INORDER_TREE_ITERATOR = sig
   include ITERATOR
@@ -85,11 +87,15 @@ end
     try Stack.pop stack with Stack.Empty -> raise NoResult 
 
   
-  let return_to = (Stack.create())
+ 
 
+          
+    
+  let create (l: 'a tree) : 'a t =
+    
   let is_tree_visited (tre:'a tree) (tre_lst: 'a tree list):bool =
      List.exists (fun x -> (tre = x)) (tre_lst)
-
+   in
   (*returns (isleftleaf?,isrightleaf?,isleftvisited?,isrightvisited?*)
   let check_children (tre: 'a tree) (tre_lst: 'a tree list): bool * bool * bool * bool=
       match tre with
@@ -100,11 +106,11 @@ end
             |(Leaf,_) -> (true,false,(is_tree_visited left tre_lst), (is_tree_visited right tre_lst))
             |(_,Leaf) -> (false,true,(is_tree_visited left tre_lst), (is_tree_visited right tre_lst))
             |(_,_) -> (false,false,(is_tree_visited left tre_lst), (is_tree_visited right tre_lst))
-          
-    
-  let create (l: 'a tree) : 'a t =
+
+   in
+    let return_to = (Stack.create()) in  
     let rec traverser (current: 'a tree) (visited: 'a tree list) : 'a tree list =
-      let checker_tup : bool*bool*bool*bool = check_children current visited in
+      let checker_tup = check_children current visited in
         match (checker_tup,current) with
         |((true,true,false,false),Node(a,left,right)) -> if(Stack.is_empty return_to) then (current::visited)
                    else traverser (Stack.pop return_to) (current::visited)
@@ -114,10 +120,12 @@ end
                    else traverser (Stack.pop return_to) visited
         |((_,_,_,_), Leaf) -> failwith "primary tree cannot be leaf"
         in
-   let lt : 'a tree list = [] in
-   let visited_order : 'a tree list = traverser l lt in
+  
 
-   let acc : 'a t = Stack.create() in
+   
+   let visited_order = traverser l [] in
+
+   let acc = Stack.create() in
    let rec create_helper (lst: 'a tree list)  =
       match lst with 
        Node(a,leaf,right)::tl -> (Stack.push a acc); create_helper tl
@@ -125,7 +133,7 @@ end
     create_helper visited_order
 end  
  
-*)
+
 module type TAKE_ITERATOR = functor (I: ITERATOR) -> sig
   include ITERATOR
 
