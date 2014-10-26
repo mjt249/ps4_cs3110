@@ -45,8 +45,7 @@ TEST_UNIT "Next_6" =
 assert_true ((next itr) = 3)
 TEST_UNIT "Next_7" =
 assert_false (has_next itr) 
-(*TEST_UNIT "Next_8" =
-assert_raises (Some (Iterator.InorderTreeIterator.NoResult)) has_next itr *)
+
 
 module Tester = TakeIterator(ListIterator)
 let lst = [1;2;3]
@@ -89,8 +88,8 @@ TEST_UNIT "Next_6" =
 assert_true ((ListIterator.next itr2) = 3)
 TEST_UNIT "Next_7" =
 assert_false (ListIterator.has_next itr2)  
-(*TEST_UNIT "Next_8" =
-assert_raises (Some (NoResult)) ListIterator.next itr2  *)
+TEST_UNIT "Next_8" =
+assert_raises (Some (ListIterator.NoResult)) ListIterator.next itr2 
 
 
 module Tester3 = RangeIterator(ListIterator)
@@ -113,8 +112,8 @@ TEST_UNIT "Next_6" =
 assert_true ((Tester3.next itr3) = 3)
 TEST_UNIT "Next_7" =
 assert_false (Tester3.has_next itr3) 
-(*TEST_UNIT "Next_8" =
- assert_raises (Some (Iterator.RangeIterator(I).NoResult)) Tester3.next itr3 *)
+TEST_UNIT "Next_8" =
+ assert_raises (Some (Tester3.NoResult)) Tester3.next itr3 
 
 
 module Tester4 = RangeIterator(ListIterator)
@@ -135,8 +134,8 @@ TEST_UNIT "Next_6" =
 assert_true ((Tester4.next itr4) = 4)
 TEST_UNIT "Next_7" =
 assert_false (Tester4.has_next itr4) 
-(*TEST_UNIT "Next_8" =
-assert_raises (Some (Iterator.RangeIterator(I).NoResult)) Tester4.next itr4 *)
+TEST_UNIT "Next_8" =
+assert_raises (Some (Tester4.NoResult)) Tester4.next itr4
 
 
 module Tester5 = RangeIterator(ListIterator)
@@ -149,8 +148,8 @@ TEST_UNIT "Next_2" =
 assert_true ((Tester5.next itr5) = 3)
 TEST_UNIT "Next_3" =
 assert_false (Tester5.has_next itr5)
-(*TEST_UNIT "TEST CATCH" =
-assert_raises (Some (Iterator.RangeIterator(I).NoResult)) Tester5.next itr5 *)
+TEST_UNIT "TEST CATCH" =
+assert_raises (Some (Tester5.NoResult)) Tester5.next itr5 
 
 
 
