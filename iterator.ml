@@ -13,21 +13,6 @@ module type ITERATOR = sig
   val next: 'a t -> 'a
 end
 
-module Iterator : ITERATOR = struct
-
-  
-  type 'a t = 'a Stack.t
-  exception NoResult
-
-  let has_next (stack: 'a t) : bool =
-    not(Stack.is_empty stack)
- 
-
-  let next (stack: 'a t) : 'a =
-    try Stack.pop stack with Stack.Empty -> raise NoResult 
-
-end  
-
 module type LIST_ITERATOR = sig
   include ITERATOR
   (* parameters:  a list l
@@ -36,7 +21,11 @@ module type LIST_ITERATOR = sig
    *   starting with the head.  *)
   val create: 'a list -> 'a t
 end
-
+(*Precondition: create takes an 'a list to make an iterator that will return
+*the elements of the list one at a time.
+*Postcondition: Will raise NoResult if next is called on an 
+*iterator that is empty
+*)
 module ListIterator : LIST_ITERATOR = struct
 
   
@@ -63,8 +52,6 @@ end
 
 type 'a tree = Leaf | Node of ('a * 'a tree * 'a tree)
 
-
-
 module type INORDER_TREE_ITERATOR = sig
   include ITERATOR
   (* parameters:  a tree t
@@ -74,7 +61,11 @@ module type INORDER_TREE_ITERATOR = sig
   val create: 'a tree -> 'a t
 end
 
-
+(*Precondition: InorderTreeIterator takes an 'a tree.This initial 'a tree must
+*not be a Leaf or the behavior is undefined.
+*Postcondition: This iterator with give the 'a 's of the tree in 
+*inorder traversal order
+*)
  module InorderTreeIterator : INORDER_TREE_ITERATOR = struct
     type 'a t = 'a Stack.t
   exception NoResult
@@ -91,26 +82,35 @@ end
      List.exists (fun x -> (tre = x)) (tre_lst)
    in
   (*returns (isleftleaf?,isrightleaf?,isleftvisited?,isrightvisited?*)
-  let check_children (tre: 'a tree) (tre_lst: 'a tree list): bool * bool * bool * bool=
+  let check_children (tre: 'a tree) (tre_lst: 'a tree list): 
+     bool * bool * bool * bool=
       match tre with
       |Leaf -> failwith "primary tree cannot be leaf"
       | Node(a,left,right) -> 
             match (left,right) with
-            |(Leaf,Leaf) -> (true,true,(is_tree_visited left tre_lst), (is_tree_visited right tre_lst))
-            |(Leaf,_) -> (true,false,(is_tree_visited left tre_lst), (is_tree_visited right tre_lst))
-            |(_,Leaf) -> (false,true,(is_tree_visited left tre_lst), (is_tree_visited right tre_lst))
-            |(_,_) -> (false,false,(is_tree_visited left tre_lst), (is_tree_visited right tre_lst))
-
+            |(Leaf,Leaf) -> (true,true,
+              (is_tree_visited left tre_lst), (is_tree_visited right tre_lst))
+            |(Leaf,_) -> (true,false,
+              (is_tree_visited left tre_lst), (is_tree_visited right tre_lst))
+            |(_,Leaf) -> (false,true,
+              (is_tree_visited left tre_lst), (is_tree_visited right tre_lst))
+            |(_,_) -> (false,false,
+              (is_tree_visited left tre_lst), (is_tree_visited right tre_lst))
    in
+
     let return_to = (Stack.create()) in  
-    let rec traverser (current: 'a tree) (visited: 'a tree list) : 'a tree list =
+    let rec traverser (current:'a tree) (visited:'a tree list):'a tree list =
       let checker_tup = check_children current visited in
         match (checker_tup,current) with
-        |((true,true,false,false),Node(a,left,right)) -> if(Stack.is_empty return_to) then (current::visited)
+        |((true,true,false,false),Node(a,left,right)) -> 
+           if(Stack.is_empty return_to) then (current::visited)
                    else traverser (Stack.pop return_to) (current::visited)
-        |((false,_,false,_),Node(a,left,right)) -> (Stack.push current return_to); traverser left visited
-        |((_,false,_,false),Node(a,left,right)) -> (Stack.push current return_to); traverser right (current::visited)
-        |((_,_,_,_),Node(a,left,right)) -> if(Stack.is_empty return_to) then (visited) 
+        |((false,_,false,_),Node(a,left,right)) -> 
+          (Stack.push current return_to); traverser left visited
+        |((_,false,_,false),Node(a,left,right)) -> 
+          (Stack.push current return_to); traverser right (current::visited)
+        |((_,_,_,_),Node(a,left,right)) -> 
+           if(Stack.is_empty return_to) then (visited) 
                    else traverser (Stack.pop return_to) visited
         |((_,_,_,_), Leaf) -> failwith "primary tree cannot be leaf"
         in
@@ -135,7 +135,13 @@ module type TAKE_ITERATOR = functor (I: ITERATOR) -> sig
    *   raises NoResult. *)
   val create: int -> 'a I.t -> 'a t
 end
-
+(*Precondition: To create an iterator after applying Take ITerator
+*to an ITERATOR module, pass int n and iter 'a I.t. n must be 0<= n <
+*number of 'as or will raise NoResult
+*Postcondition: returns:  an iterator that behaves the same as i for
+*exactly n calls to next, but afterwards
+*raises NoResult.
+*)
 module TakeIterator : TAKE_ITERATOR = functor (I : ITERATOR) -> struct
   open I
   type 'a t = 'a Stack.t
@@ -166,7 +172,10 @@ module TakeIterator : TAKE_ITERATOR = functor (I : ITERATOR) -> struct
      let lst : 'a list = List.rev((resizer n [])) in
      (create_help lst)
 end
-
+(*Precondition: n must be 0<= n < nbr of as in i or
+*may raise NoResult
+*Postcondition: advances n and ignores those results
+*)
 module IteratorUtilsFn (I : ITERATOR) = struct
   type 'a t = 'a I.t
   (* requires: n is positive
@@ -202,7 +211,11 @@ module type RANGE_ITERATOR = functor (I : ITERATOR) -> sig
   val create : int -> int -> 'a I.t -> 'a t
 end
 
-(**)
+(*Precondition:Create takes int n, int m, and iter requires:
+* n <= m and n non-negative. 
+*Postcondition: If the iter passed would normally produce 1,2,3,4,5,6
+*and n = 2 and m = 4 then will return 3,4,5 instead.
+*)
 module RangeIterator : RANGE_ITERATOR = functor (I : ITERATOR) -> struct
   module UtilApplied = IteratorUtilsFn(I)
   module TakeApplied = TakeIterator(I)
@@ -235,10 +248,12 @@ module RangeIterator : RANGE_ITERATOR = functor (I : ITERATOR) -> struct
      let lst : 'a list = List.rev((resizer n [])) in
      (create_help lst)
 
-  
   (*requires: n <= m and n non-negative*)
+
   let create (n: int) (m: int) (iter: 'a I.t): 'a t =
     UtilApplied.advance n iter;
-    create_n (m-n) iter
+    create_n (m-n + 1) iter
+
 
 end
+
