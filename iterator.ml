@@ -13,7 +13,6 @@ module type ITERATOR = sig
   val next: 'a t -> 'a
 end
 
-(*Test Code Below*)
 module Iterator : ITERATOR = struct
 
   
@@ -84,12 +83,7 @@ end
     not(Stack.is_empty stack)
 
   let next (stack: 'a t) : 'a =
-    try Stack.pop stack with Stack.Empty -> raise NoResult 
-
-  
- 
-
-          
+    try Stack.pop stack with Stack.Empty -> raise NoResult           
     
   let create (l: 'a tree) : 'a t =
     
@@ -120,8 +114,6 @@ end
                    else traverser (Stack.pop return_to) visited
         |((_,_,_,_), Leaf) -> failwith "primary tree cannot be leaf"
         in
-  
-
    
    let visited_order = traverser l [] in
 
@@ -153,7 +145,7 @@ module TakeIterator : TAKE_ITERATOR = functor (I : ITERATOR) -> struct
     try Stack.pop stack with Stack.Empty -> raise NoResult 
 
   let has_next (stack: 'a t) : bool =
-    not(Stack.is_empty stack)
+    not(Stack.is_empty stack) 
 
   let create (n: int) (iter : 'a I.t) : 'a t =
     
@@ -175,11 +167,8 @@ module TakeIterator : TAKE_ITERATOR = functor (I : ITERATOR) -> struct
      (create_help lst)
 end
 
-(*advance i yields n results*)
 module IteratorUtilsFn (I : ITERATOR) = struct
   type 'a t = 'a I.t
-  exception NoResult
-
   (* requires: n is positive
        effects: causes i to yield n results, ignoring
    *   those results.  Raises NoResult if i does.  *)
@@ -213,7 +202,7 @@ module type RANGE_ITERATOR = functor (I : ITERATOR) -> sig
   val create : int -> int -> 'a I.t -> 'a t
 end
 
-
+(**)
 module RangeIterator : RANGE_ITERATOR = functor (I : ITERATOR) -> struct
   module UtilApplied = IteratorUtilsFn(I)
   module TakeApplied = TakeIterator(I)
@@ -246,45 +235,10 @@ module RangeIterator : RANGE_ITERATOR = functor (I : ITERATOR) -> struct
      let lst : 'a list = List.rev((resizer n [])) in
      (create_help lst)
 
-
+  
+  (*requires: n <= m and n non-negative*)
   let create (n: int) (m: int) (iter: 'a I.t): 'a t =
     UtilApplied.advance n iter;
     create_n (m-n) iter
 
 end
-(* 
-  let creater (n: int) (iter : 'a I.t) : 'a t =
-
-    
-    let create_help (l: 'a list) : 'a t =
-       let rev_l = List.rev(l) in
-       let acc : 'a t = Stack.create() in
-       let rec create_helper (lst: 'a list)  =
-          match lst with 
-          hd::tl -> (Stack.push hd acc); create_helper tl
-          | _ -> acc in
-       create_helper rev_l
-    in
-     let rec resizer (current: int) (accum: 'a list): 'a list =
-        if (current <= 0) then accum
-        else  resizer (current - 1) ((I.next iter)::accum)
-      in
-
-     let lst : 'a list = List.rev((resizer n [])) in
-     (create_help lst)
-   in
-(*  let advance (n: int) (iter: 'a I.t) : unit =
-    let rec advancer (current: int) : unit =
-       if (current <= 0) then ()
-     else I.next iter ; advancer (current - 1)
-   in
-    advancer n *)
-
-  let x = advance n iter in
-  creater m iter 
-    (*  let new_iter : 'a t = TakeApplied.create m iter in*)
-       *)
-    
-
-
-
