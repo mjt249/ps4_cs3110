@@ -213,26 +213,45 @@ module type RANGE_ITERATOR = functor (I : ITERATOR) -> sig
   val create : int -> int -> 'a I.t -> 'a t
 end
 
-(* 
+
 module RangeIterator : RANGE_ITERATOR = functor (I : ITERATOR) -> struct
   module UtilApplied = IteratorUtilsFn(I)
   module TakeApplied = TakeIterator(I)
 
-
+  type 'a t = 'a Stack.t
   exception NoResult
 
+  let next (stack: 'a t) : 'a =
+    try Stack.pop stack with Stack.Empty -> raise NoResult 
 
-  type 'a t = 'a I.t
+  let has_next (stack: 'a t) : bool =
+    not(Stack.is_empty stack)
 
-  let next (stack: 'a t) : 'a = I.next stack
+  let create_n (n: int) (iter : 'a I.t) : 'a t =
+    
+    let create_help (l: 'a list) : 'a t =
+       let rev_l = List.rev(l) in
+       let acc : 'a t = Stack.create() in
+       let rec create_helper (lst: 'a list)  =
+          match lst with 
+          hd::tl -> (Stack.push hd acc); create_helper tl
+          | _ -> acc in
+       create_helper rev_l
+    in
+     let rec resizer (current: int) (accum: 'a list): 'a list =
+        if (current <= 0) then accum
+        else  resizer (current - 1) ((I.next iter)::accum)
+      in
 
-  let has_next (stack: 'a t) : bool = I.has_next stack
+     let lst : 'a list = List.rev((resizer n [])) in
+     (create_help lst)
 
 
   let create (n: int) (m: int) (iter: 'a I.t): 'a t =
+    UtilApplied.advance n iter;
+    create_n (m-n) iter
 
-    let create_1 = TakeApplied.create m iter in
-    UtilApplied.advance n create_1; create_1 *)
+end
 (* 
   let creater (n: int) (iter : 'a I.t) : 'a t =
 
